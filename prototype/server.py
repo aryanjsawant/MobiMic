@@ -101,9 +101,10 @@ def find_output_device(name):
             if name.lower() in d["name"].lower():
                 return i, True
         sys.exit(f"No output device matching '{name}'. Run with --list to see devices.")
-    for i, d in outputs:
-        if any(h in d["name"].lower() for h in CABLE_HINTS):
-            return i, True
+    for hint in CABLE_HINTS:  # in order of preference: the plain "CABLE Input" first
+        for i, d in outputs:
+            if hint in d["name"].lower():
+                return i, True
     return sd.query_hostapis(wasapi)["default_output_device"], False
 
 
@@ -177,6 +178,20 @@ def print_qr(url):
         pass  # output redirected to something that can't show block characters
 
 
+def free_port(first):
+    """The first port from `first` upward that nothing else (e.g. the MobiMic plugin) is using."""
+    for port in range(first, first + 10):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            if sys.platform == "win32":
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+            try:
+                s.bind(("0.0.0.0", port))
+                return port
+            except OSError:
+                continue
+    sys.exit(f"Ports {first}-{first + 9} are all in use.")
+
+
 def adb_reverse(port):
     try:
         subprocess.run(["adb", "reverse", f"tcp:{port}", f"tcp:{port}"],
@@ -233,6 +248,8 @@ def main():
     p.add_argument("--buffer-ms", type=int, default=120, help="jitter buffer target (lower = less delay, more glitches)")
     p.add_argument("--gain", type=float, default=1.0, help="volume multiplier")
     args = p.parse_args()
+
+    args.port = free_port(args.port)
 
     if args.list:
         print(sd.query_devices())

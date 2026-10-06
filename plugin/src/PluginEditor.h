@@ -33,15 +33,15 @@ private:
 
     MobiMicProcessor& processor;
 
-    juce::Label status, urlLabel, stats;
+    juce::Label status, urlLabel, stats, helperLabel;
     juce::TextButton nextAddress { "Other address" }, captureButton { "Capture" }, openFolder { "Open takes folder" };
-    juce::ToggleButton autoCapture { "Capture while the DAW records" };
-    juce::Slider bufferSlider, gainSlider;
-    juce::Label bufferLabel { {}, "Buffer" }, gainLabel { {}, "Gain" };
+    juce::ToggleButton autoCapture { "Capture while the DAW records" }, monitor { "Hear the phone live" };
+    juce::Slider bufferSlider, gainSlider, offsetSlider;
+    juce::Label bufferLabel { {}, "Buffer" }, gainLabel { {}, "Gain" }, offsetLabel { {}, "Offset" };
     TakeChip takeChip;
 
-    juce::AudioProcessorValueTreeState::SliderAttachment bufferAttachment, gainAttachment;
-    juce::AudioProcessorValueTreeState::ButtonAttachment autoCaptureAttachment;
+    juce::AudioProcessorValueTreeState::SliderAttachment bufferAttachment, gainAttachment, offsetAttachment;
+    juce::AudioProcessorValueTreeState::ButtonAttachment autoCaptureAttachment, monitorAttachment;
 
     std::vector<std::string> addresses;
     int addressIndex = 0;

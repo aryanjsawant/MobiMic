@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(MobiMic VERSION 0.1.0 LANGUAGES C CXX)
+project(MobiMic VERSION 0.3.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -105,6 +105,26 @@ target_include_directories(MobiMicScreenshots PRIVATE ${qrcodegen_SOURCE_DIR}/cp
 target_compile_definitions(MobiMicScreenshots PRIVATE
     JUCE_MODAL_LOOPS_PERMITTED=1 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 NOMINMAX WIN32_LEAN_AND_MEAN)
 target_link_libraries(MobiMicScreenshots PRIVATE
+    MobiMicData
+    juce::juce_audio_utils
+    MbedTLS::mbedtls MbedTLS::mbedx509 MbedTLS::mbedcrypto
+    ws2_32 iphlpapi
+    juce::juce_recommended_config_flags)
+
+# A fake host presses record/stop on the real plugin (see tests/test_host_record.py).
+juce_add_console_app(MobiMicHostRecordTest PRODUCT_NAME "MobiMicHostRecordTest")
+target_sources(MobiMicHostRecordTest PRIVATE
+    tests/HostRecordTest.cpp
+    src/PluginProcessor.cpp
+    src/PluginEditor.cpp
+    src/PhoneServer.cpp
+    src/NetInfo.cpp
+    src/TakeWriter.cpp
+    ${qrcodegen_SOURCE_DIR}/cpp/qrcodegen.cpp)
+target_include_directories(MobiMicHostRecordTest PRIVATE ${qrcodegen_SOURCE_DIR}/cpp)
+target_compile_definitions(MobiMicHostRecordTest PRIVATE
+    JUCE_MODAL_LOOPS_PERMITTED=1 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 NOMINMAX WIN32_LEAN_AND_MEAN)
+target_link_libraries(MobiMicHostRecordTest PRIVATE
     MobiMicData
     juce::juce_audio_utils
     MbedTLS::mbedtls MbedTLS::mbedx509 MbedTLS::mbedcrypto

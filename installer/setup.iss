@@ -23,6 +23,8 @@ WizardStyle=modern
 
 [Files]
 Source: "..\plugin\build\MobiMic_artefacts\Release\VST3\MobiMic.vst3\*"; DestDir: "{commoncf64}\VST3\MobiMic.vst3"; Flags: recursesubdirs ignoreversion
+; The Ableton Live helper that places finished takes on the timeline.
+Source: "..\ableton\MobiMic\*"; DestDir: "{userdocs}\Ableton\User Library\Remote Scripts\MobiMic"; Flags: recursesubdirs ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"
 
 [Run]
@@ -34,4 +36,4 @@ Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""M
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""MobiMic"""; Flags: runhidden; RunOnceId: "RemoveFirewallRule"
 
 [Messages]
-FinishedLabel=MobiMic is installed.%n%nOpen your DAW, rescan plug-ins if needed, and add MobiMic to an audio track. Then scan the QR code with your phone.
+FinishedLabel=MobiMic is installed.%n%nOpen your DAW, rescan plug-ins if needed, and add MobiMic to an audio track. Then scan the QR code with your phone.%n%nAbleton Live: to have takes placed on the track for you, choose MobiMic as a Control Surface in Preferences > Link, Tempo & MIDI.

@@ -58,12 +58,16 @@ const micBtn = $('mic'), statusEl = $('status'), levelEl = $('level'), statsEl =
 // Batches the 128-frame render quanta into 10 ms int16 packets.
 const WORKLET = `
 class Capture extends AudioWorkletProcessor {
-  constructor() { super(); this.buf = new Int16Array(480); this.n = 0; this.peak = 0; }
+  constructor() {
+    super(); this.buf = new Int16Array(480); this.n = 0; this.peak = 0; this.gain = 1;
+    this.port.onmessage = e => { this.gain = e.data.gain; };
+  }
   process(inputs) {
     const ch = inputs[0][0];
     if (!ch) return true;
     for (let i = 0; i < ch.length; i++) {
-      const s = Math.max(-1, Math.min(1, ch[i]));
+      // Gain set in the plugin is applied here, while the audio is still high resolution.
+      const s = Math.max(-1, Math.min(1, ch[i] * this.gain));
       const a = Math.abs(s);
       if (a > this.peak) this.peak = a;
       this.buf[this.n++] = s * 32767;
@@ -95,9 +99,10 @@ function connect() {
   ws = new WebSocket(`wss://${location.host}/ws`);
   ws.binaryType = 'arraybuffer';
   setStatus('Connecting to PC…');
-  ws.onopen = () => { setStatus(muted ? 'Muted' : 'Streaming to PC'); render(); };
+  ws.onopen = () => { ws.send('ping'); setStatus(muted ? 'Muted' : 'Streaming to PC'); render(); };
   ws.onmessage = e => {
     const s = JSON.parse(e.data);
+    if (node && typeof s.gain === 'number') node.port.postMessage({ gain: s.gain });
     statsEl.textContent = `${s.capturing ? "● capturing take · " : ""}buffer ${s.buffer_ms} ms · glitches ${s.underruns + s.drops}`;
   };
   ws.onclose = () => {

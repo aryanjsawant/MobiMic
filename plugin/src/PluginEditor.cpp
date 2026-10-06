@@ -49,9 +49,11 @@ MobiMicEditor::MobiMicEditor (MobiMicProcessor& p)
       processor (p),
       bufferAttachment (p.apvts, "buffer", bufferSlider),
       gainAttachment (p.apvts, "gain", gainSlider),
-      autoCaptureAttachment (p.apvts, "autoCapture", autoCapture)
+      offsetAttachment (p.apvts, "offset", offsetSlider),
+      autoCaptureAttachment (p.apvts, "autoCapture", autoCapture),
+      monitorAttachment (p.apvts, "monitor", monitor)
 {
-    for (auto* label : { &status, &urlLabel, &stats })
+    for (auto* label : { &status, &urlLabel, &stats, &helperLabel })
     {
         label->setJustificationType (juce::Justification::centred);
         addAndMakeVisible (label);
@@ -62,8 +64,9 @@ MobiMicEditor::MobiMicEditor (MobiMicProcessor& p)
     urlLabel.setColour (juce::Label::textColourId, textColour);
     stats.setFont (juce::FontOptions (12.0f));
     stats.setColour (juce::Label::textColourId, dimText);
+    helperLabel.setFont (juce::FontOptions (12.0f));
 
-    for (auto* slider : { &bufferSlider, &gainSlider })
+    for (auto* slider : { &bufferSlider, &gainSlider, &offsetSlider })
     {
         slider->setSliderStyle (juce::Slider::LinearHorizontal);
         slider->setTextBoxStyle (juce::Slider::TextBoxRight, false, 70, 20);
@@ -75,9 +78,9 @@ MobiMicEditor::MobiMicEditor (MobiMicProcessor& p)
 
     bufferSlider.setTextValueSuffix (" ms");
     gainSlider.setTextValueSuffix (" dB");
-    bufferSlider.setTooltip ("Bigger = more delay but fewer dropouts on shaky Wi-Fi.");
+    offsetSlider.setTextValueSuffix (" ms");
 
-    for (auto* label : { &bufferLabel, &gainLabel })
+    for (auto* label : { &bufferLabel, &gainLabel, &offsetLabel })
     {
         label->setColour (juce::Label::textColourId, dimText);
         addAndMakeVisible (label);
@@ -103,6 +106,8 @@ MobiMicEditor::MobiMicEditor (MobiMicProcessor& p)
     };
 
     autoCapture.setColour (juce::ToggleButton::textColourId, textColour);
+    monitor.setColour (juce::ToggleButton::textColourId, textColour);
+    addAndMakeVisible (monitor);
 
     addChildComponent (nextAddress);
     addAndMakeVisible (captureButton);
@@ -110,7 +115,7 @@ MobiMicEditor::MobiMicEditor (MobiMicProcessor& p)
     addAndMakeVisible (autoCapture);
     addAndMakeVisible (takeChip);
 
-    setSize (360, 610);
+    setSize (360, 656);
     refreshAddress();
     timerCallback();
     startTimerHz (15);
@@ -203,6 +208,13 @@ void MobiMicEditor::timerCallback()
                                                     : "No take yet. Captured takes are gap-free even if the live sound glitched.");
     }
 
+    const bool helper = processor.isHelperActive();
+    const auto result = processor.getHelperResult();
+    helperLabel.setText (helper ? (result.isNotEmpty() ? result : "Ableton helper on: takes are placed on the track for you")
+                                : "Ableton helper off: drag takes in by hand",
+                         juce::dontSendNotification);
+    helperLabel.setColour (juce::Label::textColourId, helper ? green : dimText);
+
     if (captureButton.getToggleState() != processor.manualCapture.load())
         captureButton.setToggleState (processor.manualCapture.load(), juce::dontSendNotification);
 
@@ -236,7 +248,7 @@ void MobiMicEditor::paint (juce::Graphics& g)
 
     g.setColour (panel);
     g.fillRoundedRectangle (meterArea.toFloat(), 4.0f);
-    g.setColour (green);
+    g.setColour (meterLevel >= 0.99f ? red : green); // red = clipping, turn Gain down
     g.fillRoundedRectangle (meterArea.toFloat().withWidth ((float) meterArea.getWidth() * juce::jlimit (0.0f, 1.0f, std::sqrt (meterLevel))), 4.0f);
 }
 
@@ -265,10 +277,16 @@ void MobiMicEditor::resized()
     row = area.removeFromTop (26);
     gainLabel.setBounds (row.removeFromLeft (52));
     gainSlider.setBounds (row);
-    area.removeFromTop (10);
+    row = area.removeFromTop (26);
+    offsetLabel.setBounds (row.removeFromLeft (52));
+    offsetSlider.setBounds (row);
+    area.removeFromTop (8);
 
+    monitor.setBounds (area.removeFromTop (24));
     autoCapture.setBounds (area.removeFromTop (24));
-    area.removeFromTop (6);
+    area.removeFromTop (4);
+    helperLabel.setBounds (area.removeFromTop (18));
+    area.removeFromTop (4);
     takeChip.setBounds (area.removeFromTop (44));
     area.removeFromTop (8);
 

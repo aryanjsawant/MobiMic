@@ -45,6 +45,13 @@ std::vector<std::string> getLocalAddresses()
         if ((a->Flags & IP_ADAPTER_DHCP_ENABLED) != 0) score += 2;
         if (a->IfType == IF_TYPE_IEEE80211)          score += 1;
 
+        // A USB-tethered phone is plugged in for exactly this, so its network wins over Wi-Fi.
+        const std::wstring description (a->Description != nullptr ? a->Description : L"");
+
+        if (description.find (L"Remote NDIS") != std::wstring::npos
+            || description.find (L"Apple Mobile Device Ethernet") != std::wstring::npos)
+            score += 8;
+
         for (auto* u = a->FirstUnicastAddress; u != nullptr; u = u->Next)
         {
             if (u->Address.lpSockaddr->sa_family != AF_INET)

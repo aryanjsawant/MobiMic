@@ -1,7 +1,10 @@
 // Runs the real server, drift buffer and take writer without a plugin host or audio device.
 // A fake "host" pulls audio at the given sample rate; fake_phone.py plays the phone.
 //
-//   MobiMicHeadlessTest <seconds> <hostSampleRate> <bufferMs>
+//   MobiMicHeadlessTest <seconds> <hostSampleRate> <bufferMs> [window]
+//
+// With "window", the take is opened late for a range that began half a second earlier and is
+// told to end slightly in the future, the way the plugin cuts a take to the host's record button.
 
 #include <juce_core/juce_core.h>
 
@@ -40,6 +43,8 @@ int main (int argc, char** argv)
     const double seconds = argc > 1 ? std::atof (argv[1]) : 20.0;
     const double hostRate = argc > 2 ? std::atof (argv[2]) : 48000.0;
     const double bufferMs = argc > 3 ? std::atof (argv[3]) : 120.0;
+    const bool window = argc > 4;
+    juce::int64 first = 0, end = -1;
 
     Sink sink;
     PhoneServer server;
@@ -52,7 +57,8 @@ int main (int argc, char** argv)
     }
 
     server.claim (&sink);
-    sink.takes.start();
+    if (! window)
+        sink.takes.begin (0);
     std::cout << "{\"port\":" << server.getPort() << "}" << std::endl;
 
     // Pull in 10 ms blocks, as many as wall-clock time says a real host would have by now.
@@ -73,15 +79,34 @@ int main (int argc, char** argv)
         for (; blocksDone < blocksDue; ++blocksDone)
             sink.drift.pull (out.data(), block, hostRate, bufferMs);
 
+        if (window && ! sink.takes.isOpen() && end < 0 && elapsed > 5.0 && sink.takes.getStreamPosition() > 48000)
+        {
+            first = sink.takes.getStreamPosition() - 24000;
+            sink.takes.begin (first);
+        }
+        else if (window && sink.takes.isActive() && elapsed > seconds - 8.0)
+        {
+            end = sink.takes.getStreamPosition() + 4800;
+            sink.takes.setEnd (end);
+        }
+
         juce::Thread::sleep (2);
     }
 
-    sink.takes.stop();
+    if (! window)
+    {
+        end = sink.takes.getStreamPosition();
+        sink.takes.setEnd (end);
+    }
+
+    const bool complete = sink.takes.isComplete();
+    sink.takes.finish();
     server.release (&sink);
     server.stop();
 
     std::cout << "{\"underruns\":" << sink.drift.getUnderruns()
               << ",\"drops\":" << sink.drift.getDrops()
+              << ",\"first\":" << first << ",\"end\":" << end << ",\"complete\":" << (complete ? "true" : "false")
               << ",\"take\":\"" << sink.takes.getLastTake().getFullPathName().replace ("\\", "/") << "\"}" << std::endl;
     return 0;
 }

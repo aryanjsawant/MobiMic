@@ -20,7 +20,8 @@
 - **No audio driver, no virtual cable.** The audio arrives inside the plugin.
 - **No account and no internet needed.** Audio goes straight from phone to computer over your local network, encrypted.
 - **Works over Wi-Fi, a phone hotspot, or USB tethering.**
-- **Gap-free takes.** Every recording is also saved exactly as the phone sent it, so a Wi-Fi hiccup can't ruin a take.
+- **Press record like with any mic.** In Ableton Live the take lands on the track as a clip, right where you started recording.
+- **Gap-free takes.** The take is saved exactly as the phone sent it, so a Wi-Fi hiccup can't ruin it.
 
 ## Contents
 
@@ -40,8 +41,9 @@
    Windows may show "Windows protected your PC" because the installer isn't code-signed yet: click **More info → Run anyway**.
 2. Open your DAW and rescan plug-ins if MobiMic doesn't show up.
    In Ableton Live: **Preferences → Plug-Ins**, turn on **Use VST3 Plug-In System Folders**, then **Rescan**.
+3. **Ableton Live only:** restart Live, open **Preferences → Link, Tempo & MIDI**, and choose **MobiMic** in a free **Control Surface** slot (leave Input and Output on None). This turns on the helper that places your takes on the track for you.
 
-The installer puts the plugin in `C:\Program Files\Common Files\VST3` and allows its ports through Windows Firewall so the phone can reach it.
+The installer puts the plugin in `C:\Program Files\Common Files\VST3`, the Ableton helper in `Documents\Ableton\User Library\Remote Scripts\MobiMic`, and allows the plugin's ports through Windows Firewall so the phone can reach it.
 
 ## Use
 
@@ -67,30 +69,42 @@ Keep the phone's screen on while you use it. Tap the big button on the phone to 
 
 ## Recording
 
-There are two ways to record the phone.
+### In Ableton Live: just press record
 
-### Captured takes (recommended)
+<img align="right" src="docs/images/plugin-take.png" alt="Plugin window after a take" width="230">
 
-<img align="right" src="docs/images/plugin-take.png" alt="Plugin window showing a finished take ready to drag" width="230">
+With the helper turned on (Install, step 3), recording works the way it does with any microphone:
 
-While your DAW is recording, MobiMic saves exactly what the phone sent to a WAV file in `Documents\MobiMic\Takes`. When you stop, the take appears in the plugin window: **drag it onto a track**.
+1. Put MobiMic on an **audio track**.
+2. Press **record** in the Arrangement, perform, and stop.
+3. The take appears on that track as a clip, starting where the recording started.
 
-You can also start and stop a take by hand with the **Capture** button.
+The clip is the take exactly as the phone sent it, so it has every sample in order even if the live sound dropped out because of Wi-Fi. Clips already on the track keep playing through MobiMic, so you can record over a previous take or alongside it.
 
-A captured take contains every sample the phone sent, in order, even if the live sound dropped out because of Wi-Fi. It starts when capture starts and doesn't include the live buffer delay, so nudge it into place against your other tracks.
+Which track gets the clip: the audio track MobiMic is on. If MobiMic is on a MIDI track, the take goes to an armed audio track, or else to the selected audio track.
 
-### Live
-
-A track records its input, not the output of the plugins on it. To record the live signal in Ableton Live, create a second audio track, set **Audio From** to the MobiMic track with **Post FX**, and arm that track.
+The plugin window shows **Ableton helper on** when this is active. This works in the Arrangement view; clips aren't placed into Session view slots.
 
 <br clear="right">
+
+### In other DAWs, or without the helper
+
+While the DAW is recording, MobiMic saves the take to `Documents\MobiMic\Takes`. When you stop, the take appears in the plugin window: **drag it onto a track**. You can also start and stop a take by hand with the **Capture** button.
+
+To record the live signal instead, route the MobiMic track's output into a second audio track and record that. In Ableton Live: set the second track's **Audio From** to the MobiMic track with **Post FX**, and arm it. Live recordings include any dropouts you heard.
+
+### Getting the timing right
+
+Sound takes a moment to travel from the phone to the computer, so MobiMic shifts each take earlier by the **Offset** amount (50 ms by default). If your takes sit late against the beat, raise Offset; if they sit early, lower it. Clap along to the metronome, record, and adjust until the clap lines up with the grid.
 
 ## Controls
 
 | Control | What it does |
 | --- | --- |
 | **Buffer** | How much audio is held back to ride out network hiccups. Higher means more delay and fewer dropouts. 120 ms suits most networks; use 300 ms on a shaky one. |
-| **Gain** | Volume of the phone signal. |
+| **Gain** | Volume of the phone signal, for both what you hear and what is recorded. The boost is applied on the phone before the audio is sent, so it adds no noise. If takes are quiet, turn it up until the meter moves well; if the meter turns red, turn it down. |
+| **Offset** | How far each take is shifted earlier to cancel the phone's delay. See [Getting the timing right](#getting-the-timing-right). |
+| **Hear the phone live** | Plays the phone through the track as you perform. Turn it off if the delay is distracting; takes are still captured. |
 | **Capture while the DAW records** | Saves a take automatically whenever the DAW is recording. |
 | **Capture** | Starts and stops a take by hand. |
 | **Other address** | Shown when the computer has several network addresses. If the page doesn't load on the phone, click it and scan again. |
@@ -101,7 +115,7 @@ On the phone you can switch **noise suppression**, **auto gain** and **echo canc
 
 - **The browser warning.** Phone browsers only allow microphone access on encrypted (HTTPS) pages. MobiMic creates its own certificate on your computer for this, and since no authority has vouched for it, the browser asks you to confirm once per address. The audio is encrypted and never leaves your local network.
 - **Live audio can drop out.** Wireless audio can't be guaranteed gap-free in real time. MobiMic corrects for the phone and computer clocks drifting apart and buffers against network stalls, but a stall longer than the buffer is audible. The plugin and the phone page both show a glitch counter. Captured takes are not affected.
-- **Delay.** Roughly the buffer size plus about 50 ms. Fine for recording and talking; too much for monitoring yourself while singing.
+- **Delay.** What you hear live is behind by roughly the buffer size plus about 50 ms. That's fine for talking, but too much for monitoring yourself while singing; turn off **Hear the phone live** and listen to the room instead. The recorded take is not affected by this delay.
 - **One phone at a time**, received by one MobiMic instance per project.
 - **Phones.** Chrome on Android is the tested setup. iPhone (Safari) is untested and may refuse the connection.
 
@@ -113,6 +127,23 @@ On the phone you can switch **noise suppression**, **auto gain** and **echo canc
 - Check that the phone and computer are on the same network. Guest and public Wi-Fi often stop devices from talking to each other; a phone hotspot or USB tethering works.
 - Click **Other address** in the plugin and scan again.
 - Windows Firewall: the installer allows MobiMic's ports (TCP 8443–8452). If Windows is set to block all incoming connections on public networks, that overrides the rule. Open **Windows Security → Firewall & network protection → Public network** and untick **Blocks all incoming connections**, or mark the network as Private in **Settings → Network & internet**.
+</details>
+
+<details>
+<summary><b>The plugin says "Ableton helper off"</b></summary>
+
+- Restart Live after installing, then choose **MobiMic** as a Control Surface in **Preferences → Link, Tempo & MIDI**.
+- If MobiMic isn't in the Control Surface list, your User Library is in a custom location. Copy the `ableton\MobiMic` folder from this repository into `<your User Library>\Remote Scripts\`.
+</details>
+
+<details>
+<summary><b>I recorded but no clip appeared</b></summary>
+
+- Check the plugin window says **Ableton helper on** and **Capture while the DAW records** is ticked.
+- Record in the Arrangement view with MobiMic on an audio track (or with an audio track armed).
+- `%APPDATA%MobiMicog.txt` lists every recording the plugin saw and what it did with it. "Nothing received from the phone" means the phone was not connected.
+- `%APPDATA%\MobiMic\log.txt` lists every recording the plugin saw and what it did with it. "Nothing received from the phone" means the phone was not connected.
+- The message under the checkboxes says what happened to the last take. The take file is always kept in `Documents\MobiMic\Takes`, so you can still drag it in.
 </details>
 
 <details>
@@ -150,7 +181,7 @@ Pushing a tag such as `v0.1.0` makes GitHub Actions build the installer and atta
 ```
 phone browser ──HTTPS + secure WebSocket over the local network──▶ MobiMic plugin ──▶ track
                                                                         │
-                                                                        └──▶ gap-free take (.wav)
+                                                                        └──▶ gap-free take (.wav) ──▶ Ableton helper ──▶ clip on the timeline
 ```
 
 The plugin contains a small HTTPS and WebSocket server. The phone opens a page from it, captures the microphone, and streams 48 kHz mono audio back. A lock-free buffer in the plugin absorbs network jitter and continuously corrects for the two devices' clocks running at slightly different speeds, then resamples to the DAW's sample rate.
@@ -164,6 +195,7 @@ The plugin contains a small HTTPS and WebSocket server. The phone opens a page f
 | [`plugin/src/PluginProcessor.cpp`](plugin/src/PluginProcessor.cpp), [`PluginEditor.cpp`](plugin/src/PluginEditor.cpp) | The JUCE plugin and its window. |
 | [`plugin/tests/`](plugin/tests) | Integration tests: a fake phone streams through the real server under clock drift and network stalls, and the captured take is compared bit for bit. |
 | [`plugin/tools/`](plugin/tools) | Regenerates the images in this README from the real plugin and phone page. |
+| [`ableton/MobiMic/`](ableton/MobiMic/__init__.py) | The Ableton Live helper (a Control Surface script). The plugin leaves a note saying where a recording started; the helper places the take there. |
 | [`installer/setup.iss`](installer/setup.iss) | Inno Setup script. |
 | [`prototype/`](prototype) | The original Python proof of concept, which feeds a virtual audio cable instead of a plugin. |
 
