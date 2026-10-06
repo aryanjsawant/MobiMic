@@ -31,6 +31,7 @@ jobs:
           python plugin/tests/run_tests.py
           python plugin/tests/test_ableton_helper.py
           python plugin/tests/test_host_record.py
+          python plugin/tests/test_phone_page.py
 
       - name: Installer
         shell: cmd

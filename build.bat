@@ -13,6 +13,7 @@ where cmake >nul 2>nul || set "CMAKE=%ProgramFiles%\Microsoft Visual Studio\2022
 python plugin\tests\run_tests.py || exit /b 1
 python plugin\tests\test_ableton_helper.py || exit /b 1
 python plugin\tests\test_host_record.py || exit /b 1
+python plugin\tests\test_phone_page.py || exit /b 1
 
 set "ISCC=%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe"
 if not exist "%ISCC%" set "ISCC=%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe"
