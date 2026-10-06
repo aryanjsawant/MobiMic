@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0f1115">
+<title>audiomic</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: #0f1115; color: #e8eaed;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 28px; padding: 24px 16px; text-align: center;
+    -webkit-tap-highlight-color: transparent; user-select: none;
+  }
+  h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: .5px; color: #9aa0a6; }
+  #mic {
+    width: 190px; height: 190px; border-radius: 50%; border: none;
+    background: #23262d; color: #e8eaed; font-size: 22px; font-weight: 600;
+    box-shadow: 0 0 0 0 rgba(52, 199, 89, 0); transition: background .2s;
+  }
+  #mic.live { background: #1f8f45; }
+  #mic.muted { background: #b3261e; }
+  #mic.busy { background: #6b5b12; }
+  #status { font-size: 16px; min-height: 22px; }
+  #meter { width: min(320px, 85vw); height: 10px; background: #23262d; border-radius: 5px; overflow: hidden; }
+  #level { height: 100%; width: 0; background: #34c759; }
+  #stats { font-size: 13px; color: #9aa0a6; min-height: 18px; font-variant-numeric: tabular-nums; }
+  .opts { display: flex; flex-direction: column; gap: 12px; font-size: 15px; text-align: left; }
+  .opts label { display: flex; align-items: center; gap: 10px; }
+  .opts input { width: 20px; height: 20px; }
+  #stop { background: none; border: 1px solid #3c4043; color: #9aa0a6; padding: 10px 22px; border-radius: 20px; font-size: 15px; visibility: hidden; }
+</style>
+</head>
+<body>
+  <h1>audiomic</h1>
+  <button id="mic">Start</button>
+  <div id="status">Tap to use this phone as your PC mic</div>
+  <div id="meter"><div id="level"></div></div>
+  <div id="stats"></div>
+  <div class="opts">
+    <label><input type="checkbox" id="ns" checked> Noise suppression</label>
+    <label><input type="checkbox" id="agc" checked> Auto gain</label>
+    <label><input type="checkbox" id="ec"> Echo cancellation</label>
+  </div>
+  <button id="stop">Stop</button>
+
+<script>
+const SAMPLE_RATE = 48000;
+const $ = id => document.getElementById(id);
+const micBtn = $('mic'), statusEl = $('status'), levelEl = $('level'), statsEl = $('stats'), stopBtn = $('stop');
+
+// Batches the 128-frame render quanta into 10 ms int16 packets.
+const WORKLET = `
+class Capture extends AudioWorkletProcessor {
+  constructor() { super(); this.buf = new Int16Array(480); this.n = 0; this.peak = 0; }
+  process(inputs) {
+    const ch = inputs[0][0];
+    if (!ch) return true;
+    for (let i = 0; i < ch.length; i++) {
+      const s = Math.max(-1, Math.min(1, ch[i]));
+      const a = Math.abs(s);
+      if (a > this.peak) this.peak = a;
+      this.buf[this.n++] = s * 32767;
+      if (this.n === this.buf.length) {
+        const out = this.buf.slice();
+        this.port.postMessage({ pcm: out.buffer, peak: this.peak }, [out.buffer]);
+        this.n = 0; this.peak = 0;
+      }
+    }
+    return true;
+  }
+}
+registerProcessor('capture', Capture);`;
+
+let ctx, media, node, ws, wakeLock, pingTimer, retryTimer;
+let running = false, muted = false;
+
+function setStatus(text) { statusEl.textContent = text; }
+
+function render() {
+  micBtn.className = !running ? '' : muted ? 'muted' : (ws && ws.readyState === 1) ? 'live' : 'busy';
+  micBtn.textContent = !running ? 'Start' : muted ? 'Muted' : 'Live';
+  stopBtn.style.visibility = running ? 'visible' : 'hidden';
+  for (const id of ['ns', 'agc', 'ec']) $(id).disabled = running;
+}
+
+function connect() {
+  clearTimeout(retryTimer);
+  ws = new WebSocket(`wss://${location.host}/ws`);
+  ws.binaryType = 'arraybuffer';
+  setStatus('Connecting to PC…');
+  ws.onopen = () => { setStatus(muted ? 'Muted' : 'Streaming to PC'); render(); };
+  ws.onmessage = e => {
+    const s = JSON.parse(e.data);
+    statsEl.textContent = `buffer ${s.buffer_ms} ms · glitches ${s.underruns + s.drops}`;
+  };
+  ws.onclose = () => {
+    statsEl.textContent = '';
+    if (!running) return;
+    setStatus('PC not reachable, retrying…');
+    render();
+    retryTimer = setTimeout(connect, 1000);
+  };
+}
+
+async function start() {
+  if (!navigator.mediaDevices || !window.AudioWorkletNode) {
+    setStatus('This browser can\'t capture audio here. Use Chrome and the https:// address.');
+    return;
+  }
+  try {
+    setStatus('Requesting microphone…');
+    media = await navigator.mediaDevices.getUserMedia({ audio: {
+      channelCount: 1,
+      noiseSuppression: $('ns').checked,
+      autoGainControl: $('agc').checked,
+      echoCancellation: $('ec').checked,
+    }});
+    ctx = new AudioContext({ sampleRate: SAMPLE_RATE, latencyHint: 'interactive' });
+    await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([WORKLET], { type: 'application/javascript' })));
+    node = new AudioWorkletNode(ctx, 'capture', { numberOfInputs: 1, numberOfOutputs: 0, channelCount: 1 });
+    node.port.onmessage = e => {
+      const { pcm, peak } = e.data;
+      levelEl.style.width = (muted ? 0 : Math.min(100, Math.sqrt(peak) * 100)) + '%';
+      if (!muted && ws && ws.readyState === 1 && ws.bufferedAmount < 64000) ws.send(pcm);
+    };
+    ctx.createMediaStreamSource(media).connect(node);
+    await ctx.resume();
+  } catch (err) {
+    stop();
+    setStatus(err.name === 'NotAllowedError' ? 'Microphone permission denied' : 'Error: ' + err.message);
+    return;
+  }
+  running = true; muted = false;
+  connect();
+  pingTimer = setInterval(() => { if (ws && ws.readyState === 1) ws.send('ping'); }, 1000);
+  requestWakeLock();
+  render();
+}
+
+function stop() {
+  running = false;
+  clearInterval(pingTimer); clearTimeout(retryTimer);
+  if (ws) ws.close();
+  if (media) media.getTracks().forEach(t => t.stop());
+  if (ctx) ctx.close();
+  if (wakeLock) wakeLock.release().catch(() => {});
+  ws = media = ctx = node = wakeLock = null;
+  levelEl.style.width = '0';
+  statsEl.textContent = '';
+  setStatus('Stopped');
+  render();
+}
+
+async function requestWakeLock() {
+  try { wakeLock = await navigator.wakeLock.request('screen'); } catch (_) {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (running && document.visibilityState === 'visible') {
+    requestWakeLock();
+    if (ctx && ctx.state !== 'running') ctx.resume();
+  }
+});
+
+micBtn.onclick = () => {
+  if (!running) return start();
+  muted = !muted;
+  setStatus(muted ? 'Muted' : (ws && ws.readyState === 1 ? 'Streaming to PC' : 'Connecting to PC…'));
+  render();
+};
+stopBtn.onclick = stop;
+</script>
+</body>
+</html>

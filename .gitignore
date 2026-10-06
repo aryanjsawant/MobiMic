@@ -1,0 +1,17 @@
+# Build output
+plugin/build/
+installer/Output/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+plugin/tests/sent.raw
+
+# Local certificate of the Python prototype (contains a private key)
+prototype/.cert/
+
+# Editors
+.vs/
+.vscode/
+*.user
