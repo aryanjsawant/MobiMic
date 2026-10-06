@@ -1,10 +1,27 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+bool MobiMicProcessor::isStandalone()
+{
+    // The environment variable lets the screenshot tool render the app's layout.
+    return juce::JUCEApplicationBase::isStandaloneApp()
+        || juce::SystemStats::getEnvironmentVariable ("MOBIMIC_STANDALONE", {}).isNotEmpty();
+}
+
+juce::AudioProcessor::BusesProperties MobiMicProcessor::createBuses()
+{
+    auto buses = BusesProperties().withOutput ("Output", juce::AudioChannelSet::stereo(), true);
+
+    // In a DAW the track's audio passes through. The app has nothing to pass through,
+    // and without an input it never opens (or warns about) the computer's own microphone.
+    if (! juce::JUCEApplicationBase::isStandaloneApp())
+        buses = buses.withInput ("Input", juce::AudioChannelSet::stereo(), true);
+
+    return buses;
+}
+
 MobiMicProcessor::MobiMicProcessor()
-    : AudioProcessor (BusesProperties()
-                          .withInput ("Input", juce::AudioChannelSet::stereo(), true)
-                          .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
+    : AudioProcessor (createBuses()),
       Thread ("MobiMic control"),
       apvts (*this, nullptr, "state", createLayout())
 {
@@ -19,7 +36,8 @@ MobiMicProcessor::MobiMicProcessor()
     startTimerHz (10);
 
     // Loopback only: this is how the Ableton helper says "recording started / stopped".
-    if (controlSocket.bindToPort (0, "127.0.0.1"))
+    // The standalone app has nothing to do with any DAW, so it never listens for it.
+    if (! isStandalone() && controlSocket.bindToPort (0, "127.0.0.1"))
         startThread();
 }
 
@@ -167,6 +185,35 @@ void MobiMicProcessor::phonePcm (const int16_t* samples, int n)
     auto previous = inputPeak.load();
 
     while (level > previous && ! inputPeak.compare_exchange_weak (previous, level)) {}
+
+    const auto index = levelCount.load (std::memory_order_relaxed);
+    levelHistory[index % levelHistorySize].store (level, std::memory_order_relaxed);
+    levelCount.store (index + 1, std::memory_order_release);
+}
+
+float MobiMicProcessor::getLevelBars (float* dest, int numBars, int packetsPerBar) const
+{
+    const auto count = (juce::int64) levelCount.load (std::memory_order_acquire);
+    const auto perBar = (juce::int64) packetsPerBar;
+    const auto newestBar = count / perBar;
+
+    for (int i = 0; i < numBars; ++i)
+    {
+        const auto bar = newestBar - (numBars - 1 - i);
+        float value = 0.0f;
+
+        for (juce::int64 p = 0; bar >= 0 && p < perBar; ++p)
+        {
+            const auto index = bar * perBar + p;
+
+            if (index < count && count - index <= (juce::int64) levelHistorySize)
+                value = juce::jmax (value, levelHistory[(size_t) (index % levelHistorySize)].load (std::memory_order_relaxed));
+        }
+
+        dest[i] = value;
+    }
+
+    return (float) (count % perBar) / (float) perBar;
 }
 
 void MobiMicProcessor::phoneConnectionChanged (bool)
@@ -375,7 +422,7 @@ void MobiMicProcessor::timerCallback()
 
     owner = nowOwner;
 
-    if (++ticks % 10 == 1)
+    if (++ticks % 10 == 1 && ! isStandalone())
     {
         readHelperStatus();
 

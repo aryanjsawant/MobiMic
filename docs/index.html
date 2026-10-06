@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MobiMic: your phone as a wireless microphone for your DAW</title>
+<meta name="description" content="MobiMic turns your phone into a wireless microphone for your DAW. Free, open-source VST3 plugin and app for Windows. No phone app, no audio driver.">
+<meta name="theme-color" content="#f7f7fa">
+<meta property="og:title" content="MobiMic: your phone is the microphone">
+<meta property="og:description" content="Free, open-source VST3 plugin and app for Windows. Scan a QR code and record your phone's mic straight into your DAW.">
+<meta property="og:image" content="https://aryanjsawant.github.io/MobiMic/images/hero.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.png">
+<style>
+  /* Same look as the plugin window (plugin/src/Theme.h) and the phone page (plugin/web/index.html). */
+  :root {
+    --silver-top: #fbfbfd; --silver-bottom: #e6e7ec;
+    --card: #ffffff; --hairline: #dcdde4; --track: #e4e5eb;
+    --text: #1b1b1f; --dim: #6e6e78;
+    --pink: #ec3882; --pink-light: #ff96be; --pink-pale: #ffe6f0;
+    --gradient: linear-gradient(135deg, var(--pink), var(--pink-light));
+    --shadow: 0 8px 24px rgba(32, 32, 48, .08);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+  body {
+    margin: 0; color: var(--text); line-height: 1.6; font-size: 17px;
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", sans-serif;
+    background:
+      radial-gradient(900px 560px at 100% -80px, rgba(255, 150, 190, .34), transparent 70%),
+      linear-gradient(var(--silver-top), var(--silver-bottom) 1400px) var(--silver-bottom);
+    background-repeat: no-repeat;
+  }
+  a { color: var(--pink); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  img { max-width: 100%; height: auto; display: block; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  nav {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(251, 251, 253, .82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(220, 221, 228, .7);
+  }
+  nav .wrap { display: flex; align-items: center; gap: 28px; height: 64px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 600; color: var(--text); }
+  .brand:hover { text-decoration: none; }
+  .brand img { width: 34px; height: 34px; }
+  nav .links { display: flex; gap: 24px; margin-left: auto; font-size: 15.5px; }
+  nav .links a { color: var(--text); }
+  nav .links a:hover { color: var(--pink); text-decoration: none; }
+
+  .button {
+    display: inline-block; padding: 13px 28px; border-radius: 99px; font-weight: 600; font-size: 16.5px;
+    color: #fff; background: var(--gradient); box-shadow: 0 10px 24px rgba(236, 56, 130, .28);
+    transition: transform .12s, box-shadow .12s;
+  }
+  .button:hover { text-decoration: none; transform: translateY(-1px); box-shadow: 0 14px 28px rgba(236, 56, 130, .34); }
+  .button.quiet { color: var(--text); background: rgba(255, 255, 255, .8); border: 1px solid var(--hairline); box-shadow: none; }
+  .button.small { padding: 9px 20px; font-size: 15px; }
+
+  header.hero { text-align: center; padding: 72px 0 36px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 9px; padding: 6px 16px 6px 13px; margin-bottom: 22px;
+    background: rgba(255, 255, 255, .85); border: 1px solid var(--hairline); border-radius: 99px; font-size: 14.5px; font-weight: 600;
+  }
+  .eyebrow i { width: 8px; height: 8px; border-radius: 50%; background: var(--pink); }
+  h1 { font-size: clamp(38px, 6.2vw, 66px); line-height: 1.06; letter-spacing: -1.4px; font-weight: 700; margin: 0 0 20px; }
+  h1 span { background: var(--gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lead { font-size: clamp(18px, 2.2vw, 21px); color: var(--dim); max-width: 660px; margin: 0 auto 32px; }
+  .cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .fineprint { font-size: 14px; color: var(--dim); margin-top: 16px; }
+  .hero-shot { margin: 46px auto 0; border-radius: 28px; border: 1px solid rgba(220, 221, 228, .8); box-shadow: 0 24px 60px rgba(32, 32, 48, .14); }
+
+  section { padding: 76px 0 0; }
+  h2 { font-size: clamp(28px, 3.6vw, 40px); letter-spacing: -.7px; line-height: 1.15; margin: 0 0 12px; font-weight: 700; }
+  .sub { color: var(--dim); font-size: 18px; max-width: 640px; margin: 0 0 34px; }
+  .centre { text-align: center; }
+  .centre .sub { margin-left: auto; margin-right: auto; }
+
+  .card { background: var(--card); border: 1px solid rgba(220, 221, 228, .7); border-radius: 22px; box-shadow: var(--shadow); }
+  .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); }
+  .feature { padding: 26px 26px 22px; }
+  .feature .glyph {
+    width: 44px; height: 44px; border-radius: 14px; background: var(--pink-pale); margin-bottom: 16px;
+    display: grid; place-items: center;
+  }
+  .feature svg { width: 22px; height: 22px; stroke: var(--pink); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  h3 { font-size: 19px; margin: 0 0 6px; font-weight: 600; }
+  .feature p, .step p, .product p { margin: 0; color: var(--dim); font-size: 16px; }
+
+  .steps { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: start; }
+  .step { padding: 22px 22px 26px; text-align: center; }
+  .step img { height: 366px; width: auto; margin: 0 auto 18px; border-radius: 16px; border: 1px solid rgba(220, 221, 228, .8); }
+  .step .number {
+    display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+    color: #fff; background: var(--gradient); font-weight: 600; font-size: 15px; margin-bottom: 10px;
+  }
+
+  .products { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .product { padding: 30px; display: grid; grid-template-columns: 1fr 150px; gap: 22px; align-items: center; }
+  .product img { border-radius: 12px; border: 1px solid rgba(220, 221, 228, .8); }
+  .tag { display: inline-block; font-size: 12.5px; font-weight: 600; color: var(--pink); background: var(--pink-pale); border-radius: 99px; padding: 3px 11px; margin-bottom: 10px; }
+  .product ul { margin: 12px 0 0; padding-left: 20px; color: var(--dim); font-size: 15.5px; }
+
+  .guide { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .guide .card { padding: 28px 30px; }
+  .guide ol, .guide ul { margin: 12px 0 0; padding-left: 22px; }
+  .guide li { margin-bottom: 8px; }
+  .guide li::marker { color: var(--pink); font-weight: 600; }
+  .note { font-size: 15px; color: var(--dim); margin: 14px 0 0; }
+  code { font-family: Consolas, "Cascadia Mono", monospace; font-size: .9em; background: #f1f1f5; border-radius: 6px; padding: 2px 6px; }
+  kbd { font: inherit; font-weight: 600; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 16px; }
+  .settings { padding: 8px 30px; overflow-x: auto; }
+  th, td { text-align: left; padding: 15px 12px 15px 0; border-bottom: 1px solid rgba(220, 221, 228, .7); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  th { font-size: 13.5px; color: var(--dim); font-weight: 600; }
+  td:first-child { font-weight: 600; white-space: nowrap; padding-right: 26px; }
+  td small { display: block; font-weight: 400; color: var(--dim); font-size: 13.5px; }
+
+  .faq { max-width: 800px; margin: 0 auto; display: grid; gap: 12px; }
+  details { padding: 0 26px; }
+  summary { cursor: pointer; font-weight: 600; font-size: 17.5px; padding: 19px 0; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; color: var(--pink); font-size: 24px; line-height: 1; font-weight: 400; }
+  details[open] summary::after { content: "\2212"; }
+  details p, details ul { margin: 0 0 18px; color: var(--dim); }
+  details ul { padding-left: 22px; }
+
+  .download { text-align: center; padding: 56px 28px; margin-top: 76px; }
+  .download img { width: 84px; margin: 0 auto 18px; }
+  footer { padding: 46px 0 56px; color: var(--dim); font-size: 14.5px; text-align: center; }
+  footer a { color: var(--dim); text-decoration: underline; }
+
+  @media (max-width: 760px) {
+    nav .links a:not(.button) { display: none; }
+    header.hero { padding-top: 46px; }
+    section { padding-top: 58px; }
+    .product { grid-template-columns: 1fr; }
+    .product img { width: 150px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="images/icon.png" alt="">MobiMic</a>
+    <div class="links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#guide">Guide</a>
+      <a href="#faq">FAQ</a>
+      <a href="https://github.com/aryanjsawant/MobiMic">GitHub</a>
+    </div>
+    <a class="button small" href="https://github.com/aryanjsawant/MobiMic/releases/latest">Download</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="eyebrow"><i></i>Free and open source</div>
+    <h1>Your phone is<br>the <span>microphone</span>.</h1>
+    <p class="lead">MobiMic sends your phone's mic straight into your DAW over Wi-Fi. Add the plugin to a track, scan a QR code, and press record.</p>
+    <div class="cta">
+      <a class="button" href="https://github.com/aryanjsawant/MobiMic/releases/latest">Download for Windows</a>
+      <a class="button quiet" href="https://github.com/aryanjsawant/MobiMic">View on GitHub</a>
+    </div>
+    <p class="fineprint">VST3 plugin and standalone app &nbsp;·&nbsp; Windows 10 and 11 &nbsp;·&nbsp; Nothing to install on the phone</p>
+    <img class="hero-shot" src="images/hero.png" alt="The MobiMic page on a phone streaming to the MobiMic plugin window" width="1600" height="900">
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <div class="centre">
+      <h2>A microphone you already own</h2>
+      <p class="sub">No cable, no interface, no driver. Just the phone in your pocket and the Wi-Fi you already have.</p>
+    </div>
+    <div class="grid">
+      <div class="card feature">
+        <div class="glyph"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></div>
+        <h3>Nothing to install on the phone</h3>
+        <p>The phone side runs in its browser. Scan the QR code in the plugin window and tap Start.</p>
+      </div>
+      <div class="card feature">
+        <div class="glyph"><svg viewBox="0 0 24 24"><path d="M4 12h3l2-6 4 12 2-6h5"/></svg></div>
+        <h3>Takes without gaps</h3>
+        <p>Every recording is saved exactly as the phone sent it. A Wi-Fi hiccup you heard live is not in the take.</p>
+      </div>
+      <div class="card feature">
+        <div class="glyph"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3" fill="#ec3882" stroke="none"/></svg></div>
+        <h3>Press record, like any mic</h3>
+        <p>In Ableton Live the take lands on the track as a clip, right where you started recording.</p>
+      </div>
+      <div class="card feature">
+        <div class="glyph"><svg viewBox="0 0 24 24"><path d="M5 12.5a10 10 0 0 1 14 0M8 15.5a6 6 0 0 1 8 0"/><circle cx="12" cy="18.5" r="1" fill="#ec3882"/></svg></div>
+        <h3>Wi-Fi, hotspot or USB</h3>
+        <p>Works on your home network, on the phone's own hotspot, or over USB tethering when there is no Wi-Fi.</p>
+      </div>
+      <div class="card feature">
+        <div class="glyph"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/></svg></div>
+        <h3>Private by design</h3>
+        <p>Audio travels encrypted, directly from phone to computer on your local network. No account, no cloud.</p>
+      </div>
+      <div class="card feature">
+        <div class="glyph"><svg viewBox="0 0 24 24"><path d="M9 3.5v6l-4.5 8a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3l-4.5-8v-6M8 3.5h8"/></svg></div>
+        <h3>No audio driver</h3>
+        <p>The audio arrives inside the plugin, so it works with whatever audio device your DAW is using.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="centre">
+      <h2>Recording in three steps</h2>
+      <p class="sub">From installing to your first take in a couple of minutes.</p>
+    </div>
+    <div class="steps">
+      <div class="card step">
+        <img src="images/plugin-waiting.png" alt="The plugin window showing a QR code" width="380" height="600">
+        <div class="number">1</div>
+        <h3>Add MobiMic to a track</h3>
+        <p>The plugin window shows a QR code for your computer's address.</p>
+      </div>
+      <div class="card step">
+        <img src="images/phone-live.png" alt="The phone page with a large Live button" width="390" height="780">
+        <div class="number">2</div>
+        <h3>Scan and tap Start</h3>
+        <p>The phone becomes the mic. Tap the big button any time to mute.</p>
+      </div>
+      <div class="card step">
+        <img src="images/plugin-take.png" alt="The plugin window after a take was placed on a track" width="380" height="600">
+        <div class="number">3</div>
+        <h3>Press record</h3>
+        <p>When you stop, the take is on the track. Drag it anywhere else if you like.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="products">
+  <div class="wrap">
+    <div class="centre">
+      <h2>Two ways to use it</h2>
+      <p class="sub">One installer gives you both.</p>
+    </div>
+    <div class="products">
+      <div class="card product">
+        <div>
+          <span class="tag">VST3 plugin</span>
+          <h3>Inside your DAW</h3>
+          <p>For recording into a project. Sits on a track like any effect.</p>
+          <ul>
+            <li>Captures a take whenever the DAW records</li>
+            <li>Places takes on the timeline in Ableton Live</li>
+            <li>Hear the phone through the track</li>
+          </ul>
+        </div>
+        <img src="images/plugin-connected.png" alt="The MobiMic plugin window" width="380" height="600">
+      </div>
+      <div class="card product">
+        <div>
+          <span class="tag">Standalone app</span>
+          <h3>On its own</h3>
+          <p>For quick recordings without opening a DAW.</p>
+          <ul>
+            <li>One Record button, takes saved as WAV files</li>
+            <li>Drag a take into any app</li>
+            <li>Hear the phone through your speakers</li>
+          </ul>
+        </div>
+        <img src="images/app-take.png" alt="The MobiMic standalone app" width="380" height="600">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="guide">
+  <div class="wrap">
+    <h2>Guide</h2>
+    <p class="sub">Everything you need to set up and record.</p>
+    <div class="guide">
+      <div class="card">
+        <h3>Install</h3>
+        <ol>
+          <li><a href="https://github.com/aryanjsawant/MobiMic/releases/latest">Download the installer</a> and run it.</li>
+          <li>Windows may say "Windows protected your PC" because the installer isn't code-signed yet. Click <kbd>More info</kbd>, then <kbd>Run anyway</kbd>.</li>
+          <li>Open your DAW and rescan plug-ins if MobiMic doesn't appear.</li>
+        </ol>
+        <p class="note">The installer adds the VST3 plugin, the standalone app, the Ableton Live helper, and a firewall rule so your phone can reach the plugin.</p>
+      </div>
+      <div class="card">
+        <h3>Connect your phone</h3>
+        <ol>
+          <li>Put the phone and the computer on the same network: the same Wi-Fi, the phone's hotspot, or USB tethering.</li>
+          <li>Drag <kbd>MobiMic</kbd> onto an audio track, or open the app.</li>
+          <li>Scan the QR code with the phone's camera.</li>
+          <li>The first time, the browser warns that the connection is not private. Tap <kbd>Advanced</kbd>, then <kbd>Proceed</kbd>. <a href="#warning">Why?</a></li>
+          <li>Allow the microphone and tap <kbd>Start</kbd>.</li>
+        </ol>
+        <p class="note">Keep the phone's screen on while you use it.</p>
+      </div>
+      <div class="card">
+        <h3>Record in Ableton Live</h3>
+        <ol>
+          <li>One time only: restart Live, open <kbd>Preferences → Link, Tempo &amp; MIDI</kbd>, and choose <kbd>MobiMic</kbd> in a free Control Surface slot. Leave Input and Output on None.</li>
+          <li>Put MobiMic on an audio track. The window should say <kbd>Ableton helper on</kbd>.</li>
+          <li>In the Arrangement, press record, perform, and stop.</li>
+          <li>The take appears on that track, starting where recording began.</li>
+        </ol>
+        <p class="note">You don't need to arm the track. Clips already on it keep playing through MobiMic.</p>
+      </div>
+      <div class="card">
+        <h3>Record in other DAWs</h3>
+        <ol>
+          <li>Record in your DAW as usual. MobiMic saves a take while the DAW is recording.</li>
+          <li>When you stop, the take appears in the plugin window. Drag it onto a track.</li>
+        </ol>
+        <p class="note">If your DAW doesn't tell plugins when it is recording, use the <kbd>Capture</kbd> button to start and stop a take yourself. Takes are also kept in <code>Documents\MobiMic\Takes</code>.</p>
+      </div>
+      <div class="card">
+        <h3>Use the standalone app</h3>
+        <ol>
+          <li>Open MobiMic from the Start menu and connect your phone.</li>
+          <li>Press <kbd>Record</kbd>, perform, then press <kbd>Stop</kbd>.</li>
+          <li>Drag the take from the window into any app, or open the takes folder.</li>
+        </ol>
+        <p class="note">To choose speakers or headphones, use <kbd>Options</kbd> in the title bar.</p>
+      </div>
+      <div class="card">
+        <h3>Get the timing right</h3>
+        <p class="note" style="margin-top:8px;color:var(--text);font-size:16px">Sound takes a moment to travel from the phone to the computer, so MobiMic shifts each take earlier by the Offset amount.</p>
+        <ol>
+          <li>Turn on the metronome and record yourself clapping on the beat.</li>
+          <li>If the claps sit late, raise <kbd>Offset</kbd> in settings. If they sit early, lower it.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="settings">
+  <div class="wrap">
+    <h2>Settings</h2>
+    <p class="sub">Tap the round button at the top right of the window.</p>
+    <div class="card settings">
+      <table>
+        <tr><th>Setting</th><th>What it does</th></tr>
+        <tr><td>Gain</td><td>Volume of the phone signal, for what you hear and what is recorded. It is applied on the phone, so boosting adds no noise. If the waveform turns red it is too loud.</td></tr>
+        <tr><td>Buffer</td><td>How much audio is held back to ride out network hiccups. Higher means fewer dropouts and more delay when listening live. 120 ms suits most networks.</td></tr>
+        <tr><td>Offset <small>plugin only</small></td><td>How far each take is shifted earlier to cancel the phone's delay.</td></tr>
+        <tr><td>Hear the phone live</td><td>Plays the phone through the track or your speakers. Turn it off if the delay is distracting; takes are still recorded.</td></tr>
+        <tr><td>Capture while the DAW records <small>plugin only</small></td><td>Saves a take automatically whenever the DAW is recording.</td></tr>
+        <tr><td>Sound clean-up <small>on the phone</small></td><td>Noise suppression, auto gain and echo cancellation are made for speech. Switch them off for singing and instruments.</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="centre">
+      <h2>Questions</h2>
+      <p class="sub">And what to try when something isn't working.</p>
+    </div>
+    <div class="faq">
+      <details class="card"><summary>Is it really free?</summary>
+        <p>Yes. MobiMic is free and open source under the AGPL-3.0 licence. The code is on <a href="https://github.com/aryanjsawant/MobiMic">GitHub</a>.</p></details>
+      <details class="card"><summary>Which phones work?</summary>
+        <p>Chrome on Android is the tested setup. iPhone (Safari) is untested and may refuse the connection.</p></details>
+      <details class="card"><summary>Which DAWs work?</summary>
+        <p>Any DAW on Windows that loads VST3 plugins. Automatic placing of takes on the timeline is for Ableton Live 12; in other DAWs you drag the take in.</p></details>
+      <details class="card" id="warning"><summary>Why does the phone show a security warning?</summary>
+        <p>Phone browsers only allow microphone access on encrypted pages. MobiMic creates its own certificate on your computer for this, and since no authority has vouched for it, the browser asks you to confirm once per address. The audio is encrypted and never leaves your local network.</p></details>
+      <details class="card"><summary>Can I hear myself while I sing?</summary>
+        <p>Not comfortably. The phone's audio reaches the computer roughly a tenth of a second late, which is fine for recording but too much for monitoring your own voice. Turn off <b>Hear the phone live</b>, listen to the backing track in headphones, and add effects to the take afterwards.</p></details>
+      <details class="card"><summary>Will a Wi-Fi dropout ruin my recording?</summary>
+        <p>The live sound can drop out if the network stalls for longer than the buffer. The saved take cannot: it is written from the complete stream as it arrives, so every sample is there in order. The exception is a connection that drops entirely and reconnects, which leaves a gap.</p></details>
+      <details class="card"><summary>The phone says "This site can't be reached"</summary>
+        <ul>
+          <li>Check the phone and computer are on the same network. Guest and public Wi-Fi often stop devices talking to each other; the phone's hotspot or USB tethering works.</li>
+          <li>If the computer is on several networks, click <b>Use another address</b> in the window and scan again.</li>
+          <li>In Windows Security → Firewall &amp; network protection → Public network, make sure <b>Blocks all incoming connections</b> is not ticked. It overrides the rule MobiMic's installer adds.</li>
+        </ul></details>
+      <details class="card"><summary>I recorded in Ableton but no clip appeared</summary>
+        <ul>
+          <li>The window should say <b>Ableton helper on</b>. If it says off, restart Live and choose MobiMic as a Control Surface in Preferences → Link, Tempo &amp; MIDI.</li>
+          <li>Record in the Arrangement view, with MobiMic on an audio track.</li>
+          <li>Check <b>Capture while the DAW records</b> is on in settings.</li>
+          <li>The take is always kept in <code>Documents\MobiMic\Takes</code>, so you can still drag it in.</li>
+        </ul></details>
+      <details class="card"><summary>The sound is choppy</summary>
+        <p>Raise <b>Buffer</b> in settings, move closer to the router or phone, or use USB tethering. For anything you want to keep, use the saved take.</p></details>
+      <details class="card"><summary>Is there a Mac version?</summary>
+        <p>Not yet. MobiMic is Windows only for now.</p></details>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="card download">
+    <img src="images/icon.png" alt="">
+    <h2>Get MobiMic</h2>
+    <p class="sub" style="margin:0 auto 26px">Free for Windows 10 and 11. Plugin, app and Ableton helper in one installer.</p>
+    <a class="button" href="https://github.com/aryanjsawant/MobiMic/releases/latest">Download for Windows</a>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    MobiMic is open source under the <a href="https://github.com/aryanjsawant/MobiMic/blob/main/LICENSE">AGPL-3.0 licence</a>.
+    Built with <a href="https://juce.com">JUCE</a>, <a href="https://github.com/Mbed-TLS/mbedtls">Mbed TLS</a> and <a href="https://github.com/nayuki/QR-Code-generator">QR Code generator</a>.<br>
+    VST is a registered trademark of Steinberg Media Technologies GmbH. Ableton and Live are trademarks of Ableton AG. MobiMic is not affiliated with either.
+    <br><br>
+    <a href="https://github.com/aryanjsawant/MobiMic">Source</a> &nbsp;·&nbsp;
+    <a href="https://github.com/aryanjsawant/MobiMic/issues">Report a problem</a> &nbsp;·&nbsp;
+    <a href="https://github.com/aryanjsawant/MobiMic/releases">All releases</a>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -54,8 +54,17 @@ public:
     juce::String getHelperResult() const    { return helperResult; }
     static juce::File getHandoffFolder();
 
+    /** Running as the MobiMic app rather than inside a DAW. */
+    static bool isStandalone();
+
+    /** Recent input level for the waveform display: `numBars` values, oldest first, each the
+        peak of `packetsPerBar` 10 ms packets. Returns how far (0..1) the newest bar has filled,
+        so the display can scroll smoothly between bars. */
+    float getLevelBars (float* dest, int numBars, int packetsPerBar) const;
+
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
+    static BusesProperties createBuses();
 
     void phonePcm (const int16_t*, int) override;
     void phoneConnectionChanged (bool) override;
@@ -95,6 +104,11 @@ private:
     std::atomic<bool> owner { false }, hostRecording { false };
     std::atomic<float> inputPeak { 0.0f };
     juce::String serverError;
+
+    // One peak per packet received from the phone, for the waveform display.
+    static constexpr juce::uint32 levelHistorySize = 1024;
+    std::array<std::atomic<float>, levelHistorySize> levelHistory {};
+    std::atomic<juce::uint32> levelCount { 0 };
 
     std::vector<float> scratch;
     juce::SmoothedValue<float> gain;    // fades live monitoring in and out

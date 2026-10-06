@@ -2,50 +2,125 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<meta name="theme-color" content="#0f1115">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#f7f7fa">
 <title>MobiMic</title>
 <style>
+  /* Same look as the plugin window (src/Theme.h) and the website (docs/). */
+  :root {
+    --silver-top: #fbfbfd; --silver-bottom: #e6e7ec;
+    --card: #ffffff; --hairline: #dcdde4; --track: #e4e5eb;
+    --text: #1b1b1f; --dim: #6e6e78;
+    --pink: #ec3882; --pink-light: #ff96be; --pink-pale: #ffe6f0; --red: #e5484d;
+    --gradient: linear-gradient(135deg, var(--pink), var(--pink-light));
+  }
   * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; }
+  html { height: 100%; }
   body {
-    background: #0f1115; color: #e8eaed;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 28px; padding: 24px 16px; text-align: center;
-    -webkit-tap-highlight-color: transparent; user-select: none;
+    min-height: 100%; margin: 0; color: var(--text);
+    background:
+      radial-gradient(520px 340px at 100% -40px, rgba(255, 150, 190, .34), transparent 70%),
+      linear-gradient(var(--silver-top), var(--silver-bottom)) fixed;
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+    padding: max(20px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+    -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
   }
-  h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: .5px; color: #9aa0a6; }
+  header { display: flex; align-items: center; gap: 10px; align-self: stretch; }
+  header svg { width: 34px; height: 34px; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 9px; padding: 6px 15px 6px 13px;
+    background: rgba(255, 255, 255, .85); border: 1px solid var(--hairline); border-radius: 99px;
+    font-size: 14px; font-weight: 600; max-width: 100%;
+  }
+  .pill i { width: 8px; height: 8px; border-radius: 50%; background: #b9bac4; flex: none; }
+  body.live .pill i { background: var(--pink); animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 5px rgba(236, 56, 130, .18); } }
+
+  .card {
+    align-self: stretch; background: var(--card); border: 1px solid rgba(220, 221, 228, .7); border-radius: 22px;
+    box-shadow: 0 8px 24px rgba(32, 32, 48, .08);
+  }
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 26px 22px 18px; }
+
   #mic {
-    width: 190px; height: 190px; border-radius: 50%; border: none;
-    background: #23262d; color: #e8eaed; font-size: 22px; font-weight: 600;
-    box-shadow: 0 0 0 0 rgba(52, 199, 89, 0); transition: background .2s;
+    width: 164px; height: 164px; border-radius: 50%; border: none; color: #fff;
+    font: inherit; font-size: 23px; font-weight: 600; letter-spacing: .2px;
+    background: var(--gradient); box-shadow: 0 12px 26px rgba(236, 56, 130, .30);
+    transition: background .2s, box-shadow .2s, transform .1s;
   }
-  #mic.live { background: #1f8f45; }
-  #mic.muted { background: #b3261e; }
-  #mic.busy { background: #6b5b12; }
-  #status { font-size: 16px; min-height: 22px; }
-  #meter { width: min(320px, 85vw); height: 10px; background: #23262d; border-radius: 5px; overflow: hidden; }
-  #level { height: 100%; width: 0; background: #34c759; }
-  #stats { font-size: 13px; color: #9aa0a6; min-height: 18px; font-variant-numeric: tabular-nums; }
-  .opts { display: flex; flex-direction: column; gap: 12px; font-size: 15px; text-align: left; }
-  .opts label { display: flex; align-items: center; gap: 10px; }
-  .opts input { width: 20px; height: 20px; }
-  #stop { background: none; border: 1px solid #3c4043; color: #9aa0a6; padding: 10px 22px; border-radius: 20px; font-size: 15px; visibility: hidden; }
+  #mic:active { transform: scale(.97); }
+  #mic.live { animation: ring 1.8s ease-out infinite; }
+  #mic.muted { background: var(--text); box-shadow: 0 12px 26px rgba(27, 27, 31, .22); }
+  #mic.busy { background: var(--track); color: var(--dim); box-shadow: none; }
+  @keyframes ring {
+    0% { box-shadow: 0 12px 26px rgba(236, 56, 130, .30), 0 0 0 0 rgba(236, 56, 130, .30); }
+    100% { box-shadow: 0 12px 26px rgba(236, 56, 130, .30), 0 0 0 22px rgba(236, 56, 130, 0); }
+  }
+  #hint { font-size: 14px; color: var(--dim); min-height: 19px; }
+  #wave { width: 100%; height: 56px; display: block; }
+  #stats { font-size: 13px; color: var(--dim); min-height: 17px; font-variant-numeric: tabular-nums; }
+
+  .options { padding: 6px 20px 8px; }
+  .options h2 { font-size: 13px; font-weight: 600; color: var(--dim); margin: 12px 0 2px; }
+  .options label { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; font-size: 16px; }
+  .options label + label { border-top: 1px solid rgba(220, 221, 228, .6); }
+  .options input { position: absolute; opacity: 0; pointer-events: none; }
+  .switch { width: 44px; height: 26px; border-radius: 13px; background: var(--track); position: relative; transition: background .15s; flex: none; }
+  .switch::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 4px rgba(32, 32, 48, .25); transition: transform .15s;
+  }
+  input:checked + .switch { background: var(--gradient); }
+  input:checked + .switch::after { transform: translateX(18px); }
+  input:disabled + .switch { opacity: .45; }
+  .options p { font-size: 12.5px; color: var(--dim); margin: 2px 0 10px; }
+
+  #stop {
+    font: inherit; font-size: 15px; font-weight: 600; color: var(--text);
+    background: rgba(255, 255, 255, .8); border: 1px solid var(--hairline); border-radius: 99px;
+    padding: 12px 34px; visibility: hidden;
+  }
+  footer { font-size: 12.5px; color: var(--dim); text-align: center; }
 </style>
 </head>
 <body>
-  <h1>MobiMic</h1>
-  <button id="mic">Start</button>
-  <div id="status">Tap to use this phone as your PC mic</div>
-  <div id="meter"><div id="level"></div></div>
-  <div id="stats"></div>
-  <div class="opts">
-    <label><input type="checkbox" id="ns" checked> Noise suppression</label>
-    <label><input type="checkbox" id="agc" checked> Auto gain</label>
-    <label><input type="checkbox" id="ec"> Echo cancellation</label>
-  </div>
+  <header>
+    <svg viewBox="0 0 64 64" aria-hidden="true">
+      <defs>
+        <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fdfdff"/><stop offset="1" stop-color="#e2e3ea"/></linearGradient>
+        <linearGradient id="rose" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ec3882"/><stop offset="1" stop-color="#ff96be"/></linearGradient>
+      </defs>
+      <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#tile)" stroke="#cdced6" stroke-width=".7"/>
+      <path d="M19.5 35a12.5 12.5 0 0 0 25 0" fill="none" stroke="#d62f74" stroke-width="2.6" stroke-linecap="round"/>
+      <path d="M32 47.8v5.2M25 53.4h14" fill="none" stroke="#d62f74" stroke-width="2.6" stroke-linecap="round"/>
+      <rect x="24.2" y="12.5" width="15.6" height="26.2" rx="4.2" fill="url(#rose)"/>
+      <rect x="29.5" y="15" width="5" height="1.1" rx=".55" fill="#ffe4ef"/>
+    </svg>
+    <h1>MobiMic</h1>
+  </header>
+
+  <div class="pill"><i></i><span id="status">Ready when you are</span></div>
+
+  <section class="card stage">
+    <button id="mic">Start</button>
+    <div id="hint">Tap to use this phone as your microphone</div>
+    <canvas id="wave"></canvas>
+    <div id="stats"></div>
+  </section>
+
+  <section class="card options">
+    <h2>Sound clean-up</h2>
+    <label>Noise suppression <input type="checkbox" id="ns" checked><span class="switch"></span></label>
+    <label>Auto gain <input type="checkbox" id="agc" checked><span class="switch"></span></label>
+    <label>Echo cancellation <input type="checkbox" id="ec"><span class="switch"></span></label>
+    <p>Made for speech. Switch them off for singing and instruments. Set before you start.</p>
+  </section>
+
   <button id="stop">Stop</button>
+  <footer>Keep this screen on while you record.</footer>
 
 <script>
 const SAMPLE_RATE = 48000;
@@ -53,7 +128,7 @@ const SAMPLE_RATE = 48000;
 const MAX_BACKLOG = 960000;
 const SILENCE = new ArrayBuffer(960);
 const $ = id => document.getElementById(id);
-const micBtn = $('mic'), statusEl = $('status'), levelEl = $('level'), statsEl = $('stats'), stopBtn = $('stop');
+const micBtn = $('mic'), statusEl = $('status'), hintEl = $('hint'), statsEl = $('stats'), stopBtn = $('stop'), wave = $('wave');
 
 // Batches the 128-frame render quanta into 10 ms int16 packets.
 const WORKLET = `
@@ -88,8 +163,12 @@ let running = false, muted = false;
 function setStatus(text) { statusEl.textContent = text; }
 
 function render() {
-  micBtn.className = !running ? '' : muted ? 'muted' : (ws && ws.readyState === 1) ? 'live' : 'busy';
-  micBtn.textContent = !running ? 'Start' : muted ? 'Muted' : 'Live';
+  const online = ws && ws.readyState === 1;
+  micBtn.className = !running ? '' : muted ? 'muted' : online ? 'live' : 'busy';
+  micBtn.textContent = !running ? 'Start' : muted ? 'Muted' : online ? 'Live' : '···';
+  hintEl.textContent = !running ? 'Tap to use this phone as your microphone'
+                     : muted ? 'Tap to unmute' : online ? 'Tap to mute' : '';
+  document.body.classList.toggle('live', running && online && !muted);
   stopBtn.style.visibility = running ? 'visible' : 'hidden';
   for (const id of ['ns', 'agc', 'ec']) $(id).disabled = running;
 }
@@ -98,17 +177,17 @@ function connect() {
   clearTimeout(retryTimer);
   ws = new WebSocket(`wss://${location.host}/ws`);
   ws.binaryType = 'arraybuffer';
-  setStatus('Connecting to PC…');
-  ws.onopen = () => { ws.send('ping'); setStatus(muted ? 'Muted' : 'Streaming to PC'); render(); };
+  setStatus('Connecting…');
+  ws.onopen = () => { ws.send('ping'); setStatus(muted ? 'Muted' : 'Streaming to your computer'); render(); };
   ws.onmessage = e => {
     const s = JSON.parse(e.data);
     if (node && typeof s.gain === 'number') node.port.postMessage({ gain: s.gain });
-    statsEl.textContent = `${s.capturing ? "● capturing take · " : ""}buffer ${s.buffer_ms} ms · glitches ${s.underruns + s.drops}`;
+    statsEl.textContent = `${s.capturing ? "● recording a take · " : ""}buffer ${s.buffer_ms} ms · glitches ${s.underruns + s.drops}`;
   };
   ws.onclose = () => {
     statsEl.textContent = '';
     if (!running) return;
-    setStatus('PC not reachable, retrying…');
+    setStatus('Computer not reachable, retrying…');
     render();
     retryTimer = setTimeout(connect, 1000);
   };
@@ -116,11 +195,12 @@ function connect() {
 
 async function start() {
   if (!navigator.mediaDevices || !window.AudioWorkletNode) {
-    setStatus('This browser can\'t capture audio here. Use Chrome and the https:// address.');
+    setStatus('This browser can\'t use the microphone here');
+    hintEl.textContent = 'Open the https:// address in Chrome.';
     return;
   }
   try {
-    setStatus('Requesting microphone…');
+    setStatus('Asking for the microphone…');
     media = await navigator.mediaDevices.getUserMedia({ audio: {
       channelCount: 1,
       noiseSuppression: $('ns').checked,
@@ -132,7 +212,7 @@ async function start() {
     node = new AudioWorkletNode(ctx, 'capture', { numberOfInputs: 1, numberOfOutputs: 0, channelCount: 1 });
     node.port.onmessage = e => {
       const { pcm, peak } = e.data;
-      levelEl.style.width = (muted ? 0 : Math.min(100, Math.sqrt(peak) * 100)) + '%';
+      pushLevel(muted ? 0 : peak);
       // Muted still sends (silence), so the stream and any take being captured stay continuous.
       if (ws && ws.readyState === 1 && ws.bufferedAmount < MAX_BACKLOG) ws.send(muted ? SILENCE : pcm);
     };
@@ -158,7 +238,7 @@ function stop() {
   if (ctx) ctx.close();
   if (wakeLock) wakeLock.release().catch(() => {});
   ws = media = ctx = node = wakeLock = null;
-  levelEl.style.width = '0';
+  levels.fill(0);
   statsEl.textContent = '';
   setStatus('Stopped');
   render();
@@ -177,10 +257,49 @@ document.addEventListener('visibilitychange', () => {
 micBtn.onclick = () => {
   if (!running) return start();
   muted = !muted;
-  setStatus(muted ? 'Muted' : (ws && ws.readyState === 1 ? 'Streaming to PC' : 'Connecting to PC…'));
+  setStatus(muted ? 'Muted' : (ws && ws.readyState === 1 ? 'Streaming to your computer' : 'Connecting…'));
   render();
 };
 stopBtn.onclick = stop;
+
+// The waveform: one bar per 40 ms, newest on the right, the same drawing as the plugin window.
+const PACKETS_PER_BAR = 4, STEP = 6, BAR = 3;
+const levels = new Float32Array(1024);
+let levelCount = 0;
+
+function pushLevel(peak) { levels[levelCount++ % levels.length] = peak; }
+
+function drawWave() {
+  const ratio = window.devicePixelRatio || 1, w = wave.clientWidth, h = wave.clientHeight;
+  if (wave.width !== Math.round(w * ratio)) { wave.width = Math.round(w * ratio); wave.height = Math.round(h * ratio); }
+  const g = wave.getContext('2d');
+  g.setTransform(ratio, 0, 0, ratio, 0, 0);
+  g.clearRect(0, 0, w, h);
+
+  const bars = Math.floor(w / STEP) + 2, newest = Math.floor(levelCount / PACKETS_PER_BAR);
+  const filled = (levelCount % PACKETS_PER_BAR) / PACKETS_PER_BAR;
+  for (let i = 0; i < bars; i++) {
+    const bar = newest - (bars - 1 - i);
+    let level = 0;
+    for (let p = 0; bar >= 0 && p < PACKETS_PER_BAR; p++) {
+      const index = bar * PACKETS_PER_BAR + p;
+      if (index < levelCount && levelCount - index <= levels.length) level = Math.max(level, levels[index % levels.length]);
+    }
+    const x = w - BAR - (bars - 1 - i) * STEP - filled * STEP;
+    if (x < 0) continue;
+    const age = i / (bars - 1), height = Math.max(3, Math.pow(level, 0.6) * h);
+    const red = level >= 0.99;
+    g.globalAlpha = 0.12 + 0.88 * age;
+    g.fillStyle = red ? '#e5484d' : `rgb(${255 - 19 * age}, ${150 - 94 * age}, ${190 - 60 * age})`;
+    g.beginPath();
+    g.roundRect ? g.roundRect(x, (h - height) / 2, BAR, height, 1.5) : g.rect(x, (h - height) / 2, BAR, height);
+    g.fill();
+  }
+  requestAnimationFrame(drawWave);
+}
+
+render();
+requestAnimationFrame(drawWave);
 </script>
 </body>
 </html>

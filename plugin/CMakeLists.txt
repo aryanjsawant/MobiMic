@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(MobiMic VERSION 0.3.0 LANGUAGES C CXX)
+project(MobiMic VERSION 1.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -38,13 +38,14 @@ juce_add_plugin(MobiMic
     PLUGIN_CODE Mbm1
     FORMATS VST3 Standalone
     PRODUCT_NAME "MobiMic"
+    ICON_BIG "${CMAKE_CURRENT_SOURCE_DIR}/../assets/icon.png"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     VST3_CATEGORIES Fx Tools
     COPY_PLUGIN_AFTER_BUILD FALSE)
 
-juce_add_binary_data(MobiMicData SOURCES web/index.html)
+juce_add_binary_data(MobiMicData SOURCES web/index.html assets/icon.png)
 
 target_sources(MobiMic PRIVATE
     src/PluginProcessor.cpp
@@ -61,6 +62,7 @@ target_compile_definitions(MobiMic PUBLIC
     JUCE_USE_CURL=0
     JUCE_VST3_CAN_REPLACE_VST2=0
     JUCE_DISPLAY_SPLASH_SCREEN=0
+    MOBIMIC_VERSION="${PROJECT_VERSION}"
     NOMINMAX
     WIN32_LEAN_AND_MEAN)
 
@@ -103,7 +105,8 @@ target_sources(MobiMicScreenshots PRIVATE
     ${qrcodegen_SOURCE_DIR}/cpp/qrcodegen.cpp)
 target_include_directories(MobiMicScreenshots PRIVATE ${qrcodegen_SOURCE_DIR}/cpp)
 target_compile_definitions(MobiMicScreenshots PRIVATE
-    JUCE_MODAL_LOOPS_PERMITTED=1 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 NOMINMAX WIN32_LEAN_AND_MEAN)
+    JUCE_MODAL_LOOPS_PERMITTED=1 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 NOMINMAX WIN32_LEAN_AND_MEAN
+    MOBIMIC_VERSION="${PROJECT_VERSION}")
 target_link_libraries(MobiMicScreenshots PRIVATE
     MobiMicData
     juce::juce_audio_utils
@@ -123,7 +126,8 @@ target_sources(MobiMicHostRecordTest PRIVATE
     ${qrcodegen_SOURCE_DIR}/cpp/qrcodegen.cpp)
 target_include_directories(MobiMicHostRecordTest PRIVATE ${qrcodegen_SOURCE_DIR}/cpp)
 target_compile_definitions(MobiMicHostRecordTest PRIVATE
-    JUCE_MODAL_LOOPS_PERMITTED=1 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 NOMINMAX WIN32_LEAN_AND_MEAN)
+    JUCE_MODAL_LOOPS_PERMITTED=1 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 NOMINMAX WIN32_LEAN_AND_MEAN
+    MOBIMIC_VERSION="${PROJECT_VERSION}")
 target_link_libraries(MobiMicHostRecordTest PRIVATE
     MobiMicData
     juce::juce_audio_utils

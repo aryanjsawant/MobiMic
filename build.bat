@@ -2,13 +2,13 @@
 rem Builds the plugin, runs the tests, and (if Inno Setup is installed) builds the installer.
 setlocal
 cd /d "%~dp0"
-set VERSION=0.3.0
+set VERSION=1.0.0
 
 set "CMAKE=cmake"
 where cmake >nul 2>nul || set "CMAKE=%ProgramFiles%\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
 
 "%CMAKE%" -S plugin -B plugin\build -G "Visual Studio 17 2022" -A x64 || exit /b 1
-"%CMAKE%" --build plugin\build --config Release --target MobiMic_VST3 MobiMicHeadlessTest MobiMicHostRecordTest -- -m -v:m -nologo || exit /b 1
+"%CMAKE%" --build plugin\build --config Release --target MobiMic_VST3 MobiMic_Standalone MobiMicHeadlessTest MobiMicHostRecordTest -- -m -v:m -nologo || exit /b 1
 
 python plugin\tests\run_tests.py || exit /b 1
 python plugin\tests\test_ableton_helper.py || exit /b 1

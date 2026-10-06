@@ -1,10 +1,11 @@
-// Renders the plugin window to PNG files off-screen, for the README.
+// Renders the plugin window to PNG files off-screen, for the README and website.
 // Nothing is shown on screen and no audio device is opened.
 //
-//   MobiMicScreenshots <output folder>
+//   MobiMicScreenshots <output folder> [name prefix, default "plugin"]
 //
-// Prints {"port":N} once the server is up, then waits for a phone
-// (tests/fake_phone.py) to connect before taking the "connected" shots.
+// Set MOBIMIC_STANDALONE=1 to render the app's layout instead of the plugin's.
+// Prints {"port":N} once the server is up, then waits for a phone to connect
+// before taking the "connected" shots. Prints {"shot":"name"} after each image.
 
 #include "../src/PluginEditor.h"
 #include "../src/PluginProcessor.h"
@@ -20,12 +21,13 @@ namespace
 
     void save (juce::Component& editor, const juce::File& folder, const juce::String& name)
     {
-        pump (200);
+        pump (250);
         const auto image = editor.createComponentSnapshot (editor.getLocalBounds(), true, 2.0f);
-        const auto file = folder.getChildFile (name);
+        const auto file = folder.getChildFile (name + ".png");
         file.deleteFile();
         juce::FileOutputStream out (file);
         juce::PNGImageFormat().writeImageToStream (image, out);
+        std::cout << "{\"shot\":\"" << name << "\"}" << std::endl;
     }
 
     /** Stands in for the host's audio thread so the buffer behaves as it would in a DAW. */
@@ -45,7 +47,10 @@ namespace
                 const auto due = (juce::int64) ((juce::Time::getMillisecondCounterHiRes() - start) / 10.0);
 
                 for (; done < due; ++done)
+                {
+                    buffer.clear();
                     processor.processBlock (buffer, midi);
+                }
 
                 sleep (2);
             }
@@ -59,21 +64,28 @@ int main (int argc, char** argv)
 {
     if (argc < 2)
     {
-        std::cout << "usage: MobiMicScreenshots <output folder>" << std::endl;
+        std::cout << "usage: MobiMicScreenshots <output folder> [name prefix]" << std::endl;
         return 1;
     }
 
     const auto folder = juce::File::getCurrentWorkingDirectory().getChildFile (argv[1]);
+    const juce::String prefix (argc > 2 ? argv[2] : "plugin");
     folder.createDirectory();
 
     juce::ScopedJuceInitialiser_GUI gui;
     MobiMicProcessor processor;
     processor.setPlayConfigDetails (2, 2, 48000.0, 480);
     processor.prepareToPlay (48000.0, 480);
-    pump (600); // first timer tick starts the server
+    pump (1300); // first timer ticks start the server and read the helper's status
 
-    std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
-    save (*editor, folder, "plugin-waiting.png");
+    std::unique_ptr<juce::AudioProcessorEditor> window (processor.createEditor());
+    auto& editor = dynamic_cast<MobiMicEditor&> (*window);
+
+    save (editor, folder, prefix + "-waiting");
+
+    editor.setSettingsVisible (true);
+    save (editor, folder, prefix + "-settings");
+    editor.setSettingsVisible (false);
 
     std::cout << "{\"port\":" << processor.getServer().getPort() << "}" << std::endl;
 
@@ -85,20 +97,20 @@ int main (int argc, char** argv)
 
     if (processor.getServer().isPhoneConnected())
     {
-        pump (2500);
-        save (*editor, folder, "plugin-connected.png");
+        pump (3000);
+        save (editor, folder, prefix + "-connected");
 
         processor.manualCapture = true;
         pump (3200);
-        save (*editor, folder, "plugin-capturing.png");
+        save (editor, folder, prefix + "-capturing");
 
         processor.manualCapture = false;
-        pump (500);
-        save (*editor, folder, "plugin-take.png");
+        pump (1500); // gives the script time to report a result, as the Ableton helper would
+        save (editor, folder, prefix + "-take");
         processor.getTakes().getLastTake().deleteFile();
     }
 
     host.stopThread (2000);
-    editor.reset();
+    window.reset();
     return 0;
 }

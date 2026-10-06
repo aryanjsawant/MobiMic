@@ -23,7 +23,7 @@ jobs:
       - name: Build
         run: |
           cmake -S plugin -B plugin/build -G "Visual Studio 17 2022" -A x64
-          cmake --build plugin/build --config Release --target MobiMic_VST3 MobiMicHeadlessTest MobiMicHostRecordTest -- -m -v:m -nologo
+          cmake --build plugin/build --config Release --target MobiMic_VST3 MobiMic_Standalone MobiMicHeadlessTest MobiMicHostRecordTest -- -m -v:m -nologo
 
       - name: Test
         run: |
